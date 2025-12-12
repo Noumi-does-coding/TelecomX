@@ -1,0 +1,30 @@
+from fastapi import FastAPI
+from pydantic import BaseModel
+from typing import Optional
+import pickle
+import numpy as np
+
+app = FastAPI()
+
+# Charge ton modèle pickle
+model = pickle.load(open("churn_model.pkl", "rb"))
+
+class ClientData(BaseModel):
+    tenure: float
+    MonthlyCharges: float
+    # Ajoute tes autres features Telco ici, ex. :
+    # Contract_Month_to_month: int
+    # TechSupport_No: int
+    # PaymentMethod_Electronic_check: int
+
+@app.post("/predict")
+def predict_churn(data: ClientData):
+    # Prépare les features pour ton modèle (adapte l'ordre à ton pickle)
+    features = np.array([[data.tenure, data.MonthlyCharges]])  # Ajoute les autres
+    prediction = model.predict(features)[0]
+    probability = model.predict_proba(features)[0][1] if hasattr(model, 'predict_proba') else prediction
+    return {"churn_risk": "Yes" if prediction == 1 else "No", "probability": float(probability)}
+
+@app.get("/")
+def root():
+    return {"message": "Churn API TelecomX live on Render!"}
